@@ -17,8 +17,11 @@ struct GameMenuView: View {
     @State private var playPulse = false
     @State private var titleFloat = false
     @State private var isThemeSelected = false
+    @State private var isSettingsSelected = false
     @State private var titleGlow = false
     @State private var titleScale = false
+    @AppStorage("soundEnabled") private var soundEnabled = true
+    @AppStorage("vibrationEnabled") private var vibrationEnabled = true
     var body: some View {
 
         ZStack {
@@ -118,7 +121,7 @@ struct GameMenuView: View {
                         icon: "gearshape.fill",
                         color: Color("redColor")
                     ) {
-                        playAction(.settings)
+                      isSettingsSelected = true
                     }
 
                 }
@@ -147,6 +150,8 @@ struct GameMenuView: View {
             }
         }.fullScreenCover(isPresented: $isThemeSelected) {
           ThemeSelectionView()
+        }.fullScreenCover(isPresented: $isSettingsSelected) {
+          SettingsView()
         }
     }
 }

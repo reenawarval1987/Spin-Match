@@ -193,6 +193,9 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
 
 
   private func setupBackgroundMusic() {
+    let soundEnabled = UserDefaults.standard.bool(forKey: "soundEnabled")
+
+
       guard let url = Bundle.main.url(forResource: "backgroundMusic", withExtension: "wav") else {
           print("Music file not found")
           return
@@ -202,7 +205,10 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
           bgMusicPlayer?.numberOfLoops = -1   // infinite loop
           bgMusicPlayer?.volume = 0.6
           bgMusicPlayer?.prepareToPlay()
-          bgMusicPlayer?.play()
+        if soundEnabled {
+            bgMusicPlayer?.play()
+        }
+
           print("Music started")
       } catch {
           print("Error loading music:", error)
@@ -349,7 +355,11 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
         self.run(SKAction.playSoundFileNamed("getballsound.wav", waitForCompletion: false))
 
     } else {
-        self.errorHaptic()
+      let virbrationEnabled = UserDefaults.standard.bool(forKey: "vibrationEnabled") 
+      if virbrationEnabled {
+          self.errorHaptic()
+      }
+
         self.screenShake()
         self.screenFlash()
         isGamePaused = true
@@ -475,7 +485,11 @@ extension MyScene {
       // ✅ Restart button detection (safe)
       if node.name == "actionCircle" ||
           node.parent?.name == "actionCircle" {
-        tapHaptic()
+        let virbrationEnabled = UserDefaults.standard.bool(forKey: "vibrationEnabled")
+        if virbrationEnabled {
+             tapHaptic()
+        }
+
         colorChangesCircle()
         return
       }
@@ -869,7 +883,7 @@ extension MyScene {
   // MARK: - Haptic Feedback
 
   func tapHaptic() {
-      let generator = UIImpactFeedbackGenerator(style: .light)
+      let generator = UIImpactFeedbackGenerator(style: .medium)
       generator.prepare()
       generator.impactOccurred()
   }
