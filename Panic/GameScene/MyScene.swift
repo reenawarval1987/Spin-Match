@@ -8,6 +8,7 @@
 
 import SpriteKit
 import AVFoundation
+import SwiftUI
 
 class MyScene: SKScene,SKPhysicsContactDelegate {
     var stopGame: Bool = false
@@ -34,23 +35,27 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
     var colorCircleChangeTimer: TimeInterval = 0
     var highScoreNumber: SKLabelNode?
     var scoreNumberLabel: SKLabelNode?
-    var nextLifeNumberlabel: SKLabelNode?
+   // var nextLifeNumberlabel: SKLabelNode?
     var highScoreLbl: SKLabelNode?
     var scoreLbl: SKLabelNode?
     var nextLifeLine: SKLabelNode?
-    var useLifeLine: SKSpriteNode?
     var videoShapeNode: SKShapeNode?
     var videoPlayer: AVPlayer?
     var videoNode: SKVideoNode?
     var backGround: SKSpriteNode?
     // Power ball sprites
-    var ballNode1 = SKSpriteNode(imageNamed:"blue-1.png")
-    var ballNode2 = SKSpriteNode(imageNamed:"blue-1.png")
-    var ballNode3 = SKSpriteNode(imageNamed:"blue-1.png")
-    var ballNode4 = SKSpriteNode(imageNamed:"blue-1.png")
-    var ballNode5 = SKSpriteNode(imageNamed:"blue-1.png")
+    var ballNode1 = SKSpriteNode(texture:SKTexture(imageNamed: "red-ball"))
+    var ballNode2 = SKSpriteNode(texture:SKTexture(imageNamed: "green-ball"))
+    var ballNode3 = SKSpriteNode(texture:SKTexture(imageNamed: "blue-ball"))
+    var ballNode4 = SKSpriteNode(texture:SKTexture(imageNamed: "yellow-ball"))
+    var ballNode5 = SKSpriteNode(texture:SKTexture(imageNamed: "red-ball"))
     var powerRushNode: SKLabelNode?
     var touchEnabled:Bool = true
+    var isNewRecord: Bool = false
+    private var gameStarted = false
+    var endOverlay: SKSpriteNode?
+    private var startLabel: SKLabelNode!
+    private var bgMusicPlayer: AVAudioPlayer?
 
   var circleNode1 = SKSpriteNode(texture:SKTexture(imageNamed: "red-ball"))  // SKSpriteNode(imageNamed:"circle.png")
   var circleNode2  = SKSpriteNode(texture:SKTexture(imageNamed: "green-ball")) // SKSpriteNode(imageNamed:"circle.png")
@@ -73,6 +78,11 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
   var feverLabel: SKLabelNode?
   var lastScoreTime: TimeInterval = 0
 
+  var heartNodes: [SKSpriteNode] = []
+  let maxLifeLine = 3
+  var lifeLineCount = 3
+  private var isGamePaused = true
+
   let ballTextures = [
       SKTexture(imageNamed: "red-ball"),
       SKTexture(imageNamed: "green-ball"),
@@ -86,7 +96,6 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
       SKTexture(imageNamed: "blue-circle"),
       SKTexture(imageNamed: "yellow-circle")
   ]
-
 
 
 
@@ -118,6 +127,7 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
       moveBallDown = 220
       physicsWorld.contactDelegate = self
 
+
       NotificationCenter.default.addObserver(
           self,
           selector: #selector(pauseGame),
@@ -133,24 +143,89 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
       )
   }
 
-  func initialiseBackgroundMusic() {
+  func pauseGameForLifeLine() {
 
-      run(SKAction.playSoundFileNamed("backgroundMusic.wav", waitForCompletion: false))
+      stopGame = true
+      touchEnabled = false
+
+      guard let viewController = self.view?.window?.rootViewController else { return }
+
+      let alert = UIAlertController(
+          title: "Game Over",
+          message: "Use a lifeline to continue?",
+          preferredStyle: .alert
+      )
+
+      alert.addAction(UIAlertAction(title: "Use Lifeline", style: .default) { _ in
+
+          self.useLifeLine()
+
+      })
+
+      alert.addAction(UIAlertAction(title: "Restart Game", style: .destructive) { _ in
+
+          self.gameOver()
+
+      })
+
+      viewController.present(alert, animated: true)
   }
+
+//  func useLifeLine() {
+//      lifeLineCount -= 1
+//      nextLifeNumberlabel?.text = "\(lifeLineCount)"
+//      stopGame = false
+//      touchEnabled = true
+//  }
+
+  func gameOver() {
+
+      stopGame = true
+      isPlayAgainActive = true
+      touchEnabled = false
+
+      lifeLineCount = 3
+    //  nextLifeNumberlabel?.text = "\(lifeLineCount)"
+
+      againPlayNode.run(SKAction.unhide())
+      displayHighScoreNexTLifeLabel()
+  }
+
+
+  private func setupBackgroundMusic() {
+      guard let url = Bundle.main.url(forResource: "backgroundMusic", withExtension: "wav") else {
+          print("Music file not found")
+          return
+      }
+      do {
+          bgMusicPlayer = try AVAudioPlayer(contentsOf: url)
+          bgMusicPlayer?.numberOfLoops = -1   // infinite loop
+          bgMusicPlayer?.volume = 0.6
+          bgMusicPlayer?.prepareToPlay()
+          bgMusicPlayer?.play()
+          print("Music started")
+      } catch {
+          print("Error loading music:", error)
+      }
+  }
+
+
   func initialiseAllMethods() {
 
-      initialiseBackgroundMusic()
+    setupBackgroundMusic()
       emitterEffect()
       themeSelection()
       setupGradientBackground()
     //  initialiseBackground()
-      initialiseDBAccess()
+   //   initialiseDBAccess()
    //   createGlowRing()
       setFramesForSprite()
       playAgainGameInitialise()
       initialisePowerBallDesign()
       scoreLabel()
       scoreNumberInitialise()
+      createHeartUI()
+      showTapToStart()
 
   }
   func initialiseBackground() {
@@ -178,24 +253,16 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
       let circleNodeSize2 = CGSize(width: 180, height: 180)
       let circleNodeSize3 = CGSize(width: 100, height: 100)
       let circleNodeSize4 = CGSize(width: 50, height: 50)
-
-//      circle1 = SKSpriteNode(texture: ballTextures[0])
-//      circle1.position  =  CGPoint(x: centerX, y: size.height - 80)
-//      circle1.size = CGSize(width: 40, height: 40)
-//      addChild(circle1)
-//
-
-
       circleNode1 = SKSpriteNode(texture: circleTextures[0]) //SKSpriteNode(imageNamed:"red-ball")
       circleNode1.position = circleNodePosition
       circleNode1.size = circleNodeSize1
-    circleNode1.physicsBody = SKPhysicsBody(circleOfRadius: 100)
-    circleNode1.physicsBody?.isDynamic = false
-    circleNode1.physicsBody?.categoryBitMask = PhysicsCategory.circle
-    circleNode1.physicsBody?.contactTestBitMask = PhysicsCategory.ball
-    circleNode1.physicsBody?.collisionBitMask = PhysicsCategory.none
-
-      circleNode2 = SKSpriteNode(texture: circleTextures[1]) //SKSpriteNode(imageNamed:"green-ball")
+      circleNode1.physicsBody = SKPhysicsBody(circleOfRadius: 100)
+      circleNode1.physicsBody?.isDynamic = false
+      circleNode1.physicsBody?.categoryBitMask = PhysicsCategory.circle
+      circleNode1.physicsBody?.contactTestBitMask = PhysicsCategory.ball
+      circleNode1.physicsBody?.collisionBitMask = PhysicsCategory.none
+      circleNode1.name = "actionCircle"
+      circleNode2 = SKSpriteNode(texture: circleTextures[1])
       circleNode2.position = circleNodePosition
       circleNode2.size = circleNodeSize2
       circleNode2.physicsBody = SKPhysicsBody(circleOfRadius: 100)
@@ -203,8 +270,9 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
       circleNode2.physicsBody?.categoryBitMask = PhysicsCategory.circle
       circleNode2.physicsBody?.contactTestBitMask = PhysicsCategory.ball
       circleNode2.physicsBody?.collisionBitMask = PhysicsCategory.none
+    circleNode2.name = "actionCircle"
 
-      circleNode3 = SKSpriteNode(texture: circleTextures[2]) //SKSpriteNode(imageNamed:"blue-ball.png")
+      circleNode3 = SKSpriteNode(texture: circleTextures[2])
       circleNode3.position = circleNodePosition
       circleNode3.size = circleNodeSize3
       circleNode3.physicsBody = SKPhysicsBody(circleOfRadius: 100)
@@ -212,8 +280,8 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
       circleNode3.physicsBody?.categoryBitMask = PhysicsCategory.circle
       circleNode3.physicsBody?.contactTestBitMask = PhysicsCategory.ball
       circleNode3.physicsBody?.collisionBitMask = PhysicsCategory.none
-
-      circleNode4 = SKSpriteNode(texture: circleTextures[3]) //SKSpriteNode(imageNamed:"yellow-ball.png")
+      circleNode3.name = "actionCircle"
+      circleNode4 = SKSpriteNode(texture: circleTextures[3])
       circleNode4.position = circleNodePosition
       circleNode4.size = circleNodeSize4
       circleNode4.physicsBody = SKPhysicsBody(circleOfRadius: 100)
@@ -221,16 +289,7 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
       circleNode4.physicsBody?.categoryBitMask = PhysicsCategory.circle
       circleNode4.physicsBody?.contactTestBitMask = PhysicsCategory.ball
       circleNode4.physicsBody?.collisionBitMask = PhysicsCategory.none
-
-
-
-   //   circle1.run(SKAction.colorize(with: .red, colorBlendFactor: 1, duration: 0))
-
-  //    circleNode1.run(SKAction.colorize(with: GameConstants.redColor, colorBlendFactor: 1, duration: 0))
-  //    circleNode2.run(SKAction.colorize(with: GameConstants.greenColor, colorBlendFactor: 1, duration: 0))
-  //    circleNode3.run(SKAction.colorize(with: GameConstants.blueColor, colorBlendFactor: 1, duration: 0))
-   //   circleNode4.run(SKAction.colorize(with: GameConstants.yellowColor, colorBlendFactor: 1, duration: 0))
-
+      circleNode4.name = "actionCircle"
       circleNode1.zPosition = 100
       circleNode2.zPosition = 150
       circleNode3.zPosition = 200
@@ -260,86 +319,6 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
 
       ball.run(move)
   }
-/*
-  func addingPhysicsToSprite() {
-
-      ballSelectionWithColor()
-
-    circle1.removeAllActions()
-
-    let moveAction = SKAction.moveTo(
-        y: size.height * 0.25,
-        duration: TimeInterval(ballSpeed)
-    )
-
-    moveAction.timingMode = .easeInEaseOut
-
-
-
-      circle1.run(moveAction) { [weak self] in
-          guard let self = self else { return }
-
-          if self.circle1.physicsBody?.contactTestBitMask ==
-             self.circleNode1.physicsBody?.contactTestBitMask {
-
-              if !self.isballPause {
-
-                  if self.randomColor == self.matchcolor {
-
-                      self.scoreNumber += 1
-
-//                    if feverModeActive {
-//                        self.scoreNumber += 2
-//                    } else {
-//                        self.scoreNumber += 1
-//                    }
-//                    comboCount += 1
-                  //  checkFeverMode()
-
-                      self.circleNode1.run(SKAction.scaleX(by: 1.3, y: 1.3, duration: 0.3))
-                      self.circleNode1.run(SKAction.scaleX(by: 0.77, y: 0.77, duration: 0.5))
-
-                      self.circleNode1.size = CGSize(width: 260, height: 260)
-
-                      self.scoreNumberLabel?.text = "\(self.scoreNumber)"
-
-                      self.run(SKAction.playSoundFileNamed("getballsound.wav", waitForCompletion: false))
-
-                  } else {
-
-                      self.errorHaptic()
-                      self.screenShake()
-                      self.screenFlash()
-                      self.isHiddenPlayAgianBtn = false
-                      self.stopGame = true
-                      //self.isUserInteractionEnabled = false
-                      self.isPlayAgainActive = true
-
-                      self.againPlayNode.run(SKAction.unhide())
-
-                      self.displayHighScoreNexTLifeLabel()
-                      comboCount = 0
-                  }
-              }
-          }
-
-          self.nextLifeCount -= 1
-
-          if self.nextLifeCount == 0 {
-
-              self.isHiddenPlayAgianBtn = false
-              self.stopGame = true
-              self.isUserInteractionEnabled = false
-              self.isPlayAgainActive = true
-              self.useLifeLineActive = true
-          }
-
-          self.nextLifeNumberlabel?.text = "\(self.nextLifeCount)"
-
-          self.moveBall()
-      }
-  }
-  */
 
   func didBegin(_ contact: SKPhysicsContact) {
 
@@ -370,16 +349,25 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
         self.run(SKAction.playSoundFileNamed("getballsound.wav", waitForCompletion: false))
 
     } else {
-
         self.errorHaptic()
         self.screenShake()
         self.screenFlash()
-        self.isHiddenPlayAgianBtn = false
-        self.stopGame = true
-        self.isPlayAgainActive = true
-        self.againPlayNode.run(SKAction.unhide())
-        self.displayHighScoreNexTLifeLabel()
-        comboCount = 0
+        isGamePaused = true
+
+      if lifeLineCount > 0 {
+          useLifeLine()
+         } else {
+
+           isGamePaused = true
+           self.stopGame = true
+           self.isPlayAgainActive = true
+           self.isHiddenPlayAgianBtn = false
+           self.displayHighScoreNexTLifeLabel()
+           DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+             self.showEndScreen()
+           }
+
+         }
     }
 
 
@@ -399,9 +387,7 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
 
       feverModeActive = true
       feverEndTime = CACurrentMediaTime() + 6   // 6 seconds fever
-
       ballSpeed *= 0.7   // increase speed slightly
-
       showFeverLabel()
   }
 
@@ -441,112 +427,104 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
 extension MyScene {
   override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
 
-      if touchEnabled {
-         tapHaptic()
-         colorChangesCircle()
-      }
+//      if !touchEnabled {
+//         return
+//      }
+
+    if !gameStarted {
+      startLabel.removeFromParent()
+      isGamePaused = false
+      gameStarted = true
+      return
+    }
+    if !gameStarted { return }
 
       guard let touch = touches.first else { return }
       let location = touch.location(in: self)
-      let node = atPoint(location)
 
-      if node.name == "agianPlay" {
-          playAgainGame()
+      let tappedNodes = nodes(at: location)
+
+
+    for node in tappedNodes {
+
+      if node.name == "restartButton" ||
+          node.parent?.name == "restartButton" {
+
+        //  buttonTapAnimation(node)
+        playAgainGame()
+        return
       }
-       // PLAY AGAIN BUTTON
-       if node.name == "againPlay" {
-           playAgainGame()
-       }
+
+      // ✅ Leaderboard button detection (safe)
+      if node.name == "leaderboardButton" ||
+          node.parent?.name == "leaderboardButton" {
+
+        // buttonTapAnimation(node)
+       // showLeaderShipBoard()
+        return
+      }
+      if node.name == "mainMenuButton" ||
+          node.parent?.name == "mainMenuButton" {
+          quitToMenu()
+        // buttonTapAnimation(node)
+       // showLeaderShipBoard()
+        return
+      }
+
+
+      // ✅ Restart button detection (safe)
+      if node.name == "actionCircle" ||
+          node.parent?.name == "actionCircle" {
+        tapHaptic()
+        colorChangesCircle()
+        return
+      }
+    }
+    // MARK: - Start Countdown
+
+
+
+
   }
-  /*
+  private func showTapToStart() {
 
-  func ballSpeedIncreaseUpdator() {
+      startLabel = SKLabelNode(fontNamed: "YoureGone-Regular")
+      startLabel.text = "TAP TO START"
+      startLabel.fontSize = 40
+      startLabel.fontColor = .white
+      startLabel.position = CGPoint(x: size.width/2,
+                                    y: size.height/2)
+      startLabel.zPosition = 1000
+      addChild(startLabel)
 
-      if scoreNumber >= 10 && scoreNumber < 11 {
-          ballSpeed = 1.6
-          ballIntervalUpdator = 2.1
-      }
-      else if scoreNumber >= 11 && scoreNumber < 20 {
-          ballSpeed = 1.5
-          ballIntervalUpdator = 1.8
-      }
-      else if scoreNumber >= 20 && scoreNumber < 30 {
-          ballSpeed = 1.4
-          ballIntervalUpdator = 1.6
-      }
-      else if scoreNumber >= 30 && scoreNumber < 40 {
-          ballSpeed = 1.2
-          ballIntervalUpdator = 1.5
-      }
-      else if scoreNumber >= 40 && scoreNumber < 50 {
-          ballSpeed = 1.1
-          ballIntervalUpdator = 1.4
-      }
-      else if scoreNumber >= 50 && scoreNumber <= 60 {
-          ballSpeed = 1.0
-          ballIntervalUpdator = 1.4
-      }
-      else if scoreNumber >= 60 && scoreNumber <= 70 {
-          ballSpeed = 0.9
-          ballIntervalUpdator = 1.3
-      }
-      else if scoreNumber >= 80 && scoreNumber <= 100 {
-          ballSpeed = 0.8
-          ballIntervalUpdator = 1.3
-      }
-      else if scoreNumber >= 100 && scoreNumber <= 120 {
-          ballSpeed = 0.7
-          ballIntervalUpdator = 1.2
-      }
-      else if scoreNumber >= 120 && scoreNumber <= 140 {
-          ballSpeed = 0.6
-          ballIntervalUpdator = 1.2
-      }
-      else if scoreNumber >= 140 && scoreNumber <= 160 {
-          ballSpeed = 0.4
-          ballIntervalUpdator = 1.0
-      }
-      else if scoreNumber <= 1 {
-          ballSpeed = 1.7
-          ballIntervalUpdator = 2.3
-      }
+      // Subtle pulse animation
+      let pulseUp = SKAction.scale(to: 1.1, duration: 0.8)
+      let pulseDown = SKAction.scale(to: 1.0, duration: 0.8)
+      let pulse = SKAction.sequence([pulseUp, pulseDown])
+      startLabel.run(SKAction.repeatForever(pulse))
   }
-
-   */
 
   func ballSpeedIncreaseUpdator() {
       ballSpeed = max(0.7, 2.0 - Float(scoreNumber) * 0.015)
       ballIntervalUpdator = max(1.0, 2.5 - Float(scoreNumber) * 0.01)
   }
   func playAgainGame() {
-
+    endOverlay?.removeFromParent()
+    // isGamePaused = false
       isPlayAgainActive = false
-
-
-          scoreNumber = 0
-          scoreNumberLabel?.text = "0"
-      hideHighScoreNexTLifeLabel()
-
-      highScoreLbl?.run(SKAction.fadeOut(withDuration: 1))
-      nextLifeLine?.run(SKAction.fadeOut(withDuration: 1.3))
-
+      resetHearts()
+      scoreNumber = 0
+      scoreNumberLabel?.text = "0"
       touchEnabled = true
       stopGame = false
-
       againPlayNode.run(SKAction.hide())
       isHiddenPlayAgianBtn = true
+      showTapToStart()
   }
 
   func playAgainGameInitialise() {
       highScoreLbl?.run(SKAction.fadeIn(withDuration: 1.0))
       nextLifeLine?.run(SKAction.fadeIn(withDuration: 1.3))
-      againPlayNode = SKSpriteNode(imageNamed: "try_again.png")
-      againPlayNode.name = "agianPlay"
-      againPlayNode.zPosition = 800
-      againPlayNode.position = CGPoint(x: centerX, y: size.height * 0.25)
-       againPlayNode.size = CGSize(width: 50, height: 50)
-      addChild(againPlayNode)
-      againPlayNode.run(SKAction.hide())
   }
 }
 
@@ -554,13 +532,9 @@ extension MyScene {
 extension MyScene {
   func scoreNumberInitialise() {
 
-      let highestScore = UserDefaults.standard.string(forKey: "HighestScore") ?? "0"
-      let lifeLine = UserDefaults.standard.string(forKey: "lifeLine") ?? "0"
-
-
-
+      let highestScore = UserDefaults.standard.integer(forKey: "HighestScore")
           highScoreNumber = SKLabelNode(fontNamed: "YoureGone-Regular")
-          highScoreNumber?.text = highestScore
+          highScoreNumber?.text = "\(highestScore)"
           highScoreNumber?.fontSize = 30
           highScoreNumber?.fontColor = GameConstants.highScoreLabelColor
           highScoreNumber?.position = CGPoint(x: size.width * 0.2, y: size.height * 0.88)
@@ -571,17 +545,8 @@ extension MyScene {
           scoreNumberLabel?.fontSize = 26
           scoreNumberLabel?.position = CGPoint(x: centerX, y: size.height * 0.88)
           addChild(scoreNumberLabel!)
-
-          nextLifeNumberlabel = SKLabelNode(fontNamed: "YoureGone-Regular")
-          nextLifeNumberlabel?.text = lifeLine
-          nextLifeNumberlabel?.fontSize = 30
-          nextLifeNumberlabel?.fontColor = GameConstants.highScoreLabelColor
-          nextLifeNumberlabel?.position = CGPoint(x: size.width * 0.8, y: size.height * 0.88)
-          addChild(nextLifeNumberlabel!)
   }
   func scoreLabel() {
-
-
 
           highScoreLbl = SKLabelNode(fontNamed: "YoureGone-Regular")
           highScoreLbl?.text = "HIGH SCORE"
@@ -601,11 +566,6 @@ extension MyScene {
           nextLifeLine?.position = CGPoint(x: size.width * 0.8, y: size.height * 0.91)
           addChild(nextLifeLine!)
 
-
-
-        highScoreLbl?.fontColor = GameConstants.highScoreLabelColor
-        highScoreLbl?.run(SKAction.fadeOut(withDuration: 1.0))
-        nextLifeLine?.run(SKAction.fadeOut(withDuration: 1.3))
   }
   func highScoreUpdator() {
 
@@ -614,13 +574,7 @@ extension MyScene {
           highScoreNumber?.text = "\(highScore)"
       }
   }
-  func hideHighScoreNexTLifeLabel() {
-
-      highScoreLbl?.run(SKAction.fadeOut(withDuration: 1.0))
-      nextLifeLine?.run(SKAction.fadeOut(withDuration: 1.3))
-  }
   func displayHighScoreNexTLifeLabel() {
-
       highScoreLbl?.run(SKAction.fadeIn(withDuration: 1.0))
       nextLifeLine?.run(SKAction.fadeIn(withDuration: 1.3))
   }
@@ -638,6 +592,9 @@ extension MyScene {
 }
 extension MyScene {
   override func update(_ currentTime: TimeInterval) {
+    if isGamePaused {
+       return
+    }
 
       ballSpeedIncreaseUpdator()
       powerIncrementScore()
@@ -671,31 +628,28 @@ extension MyScene {
 
     let current = CACurrentMediaTime()
 
-    if feverModeActive && current > feverEndTime {
-
-        feverModeActive = false
-        ballSpeed /= 0.7
-    }
+//    if feverModeActive && current > feverEndTime {
+//
+//        feverModeActive = false
+//        ballSpeed /= 0.7
+//    }
   }
 
   @objc func pauseGame() {
       stopGame = true
-      saveScore()
+    //  saveScore()
   }
 
   func pauseScreen() {
 
       guard let viewController = self.view?.window?.rootViewController else { return }
-
       let alert = UIAlertController(
           title: "Resume",
           message: "To continue game",
           preferredStyle: .alert
       )
-
       alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
       alert.addAction(UIAlertAction(title: "OK", style: .default))
-
       viewController.present(alert, animated: true)
   }
   @objc func startAgain() {
@@ -711,43 +665,11 @@ extension MyScene {
           stopGame = true
       } else {
           stopGame = false
+          isGamePaused = false
       }
   }
-  func saveScore() {
-
-      UserDefaults.standard.set(nextLifeCount, forKey: "lifeLine")
-      UserDefaults.standard.set(highScore, forKey: "HighestScore")
-
-      UserDefaults.standard.synchronize()
-  }
-  func initialiseDBAccess() {
-
-      let highestScore = UserDefaults.standard.integer(forKey: "HighestScore")
-      let lifeLine = UserDefaults.standard.integer(forKey: "lifeLine")
-
-
-      if highestScore == 0 && lifeLine == 0 {
-
-          nextLifeCount = 400
-          highScore = 0
-
-          UserDefaults.standard.set(nextLifeCount, forKey: "lifeLine")
-          UserDefaults.standard.set(highScore, forKey: "HighestScore")
-          UserDefaults.standard.set(1, forKey: "IntialiseDatabase")
-      }
-      else {
-
-          highScore = highestScore
-          nextLifeCount = lifeLine
-      }
-  }
-
   func colorChangesCircle() {
 
-
-
-
-  //  updateGlowColor()
       switch counter {
 
       case 1:
@@ -759,12 +681,6 @@ extension MyScene {
         circleNode3.texture = circleTextures[3]
         circleNode4.texture = circleTextures[0]
 
-
-
-//          circleNode1.run(SKAction.colorize(with: GameConstants.greenColor, colorBlendFactor: 1, duration: 0))
-//          circleNode2.run(SKAction.colorize(with: GameConstants.blueColor, colorBlendFactor: 1, duration: 0))
-//          circleNode3.run(SKAction.colorize(with: GameConstants.yellowColor, colorBlendFactor: 1, duration: 0))
-//          circleNode4.run(SKAction.colorize(with: GameConstants.redColor, colorBlendFactor: 1, duration: 0))
 
           counter = 2
 
@@ -779,17 +695,9 @@ extension MyScene {
         circleNode3.texture = circleTextures[0]
         circleNode4.texture = circleTextures[1]
 
-//          circleNode1.run(SKAction.colorize(with: GameConstants.blueColor, colorBlendFactor: 1, duration: 0))
-//          circleNode2.run(SKAction.colorize(with: GameConstants.yellowColor, colorBlendFactor: 1, duration: 0))
-//          circleNode3.run(SKAction.colorize(with: GameConstants.redColor, colorBlendFactor: 1, duration: 0))
-//          circleNode4.run(SKAction.colorize(with: GameConstants.greenColor, colorBlendFactor: 1, duration: 0))
-
           counter = 3
 
       case 3:
-
-
-
 
         matchcolor = 4
         circleNode1.texture = circleTextures[3]
@@ -797,29 +705,15 @@ extension MyScene {
         circleNode3.texture = circleTextures[1]
         circleNode4.texture = circleTextures[2]
 
-//          circleNode1.run(SKAction.colorize(with: GameConstants.yellowColor, colorBlendFactor: 1, duration: 0))
-//          circleNode2.run(SKAction.colorize(with: GameConstants.redColor, colorBlendFactor: 1, duration: 0))
-//          circleNode3.run(SKAction.colorize(with: GameConstants.greenColor, colorBlendFactor: 1, duration: 0))
-//          circleNode4.run(SKAction.colorize(with: GameConstants.blueColor, colorBlendFactor: 1, duration: 0))
-
           counter = 4
 
       case 4:
-
-
-
-          matchcolor = 1
+        matchcolor = 1
         circleNode1.texture = circleTextures[0]
         circleNode2.texture = circleTextures[1]
         circleNode3.texture = circleTextures[2]
         circleNode4.texture = circleTextures[3]
-
-     //   circleNode1.run(SKAction.colorize(with: GameConstants.redColor , colorBlendFactor: 1, duration: 0))
-//          circleNode2.run(SKAction.colorize(with:  GameConstants.greenColor, colorBlendFactor: 1, duration: 0))
-//          circleNode3.run(SKAction.colorize(with:  GameConstants.blueColor, colorBlendFactor: 1, duration: 0))
-//          circleNode4.run(SKAction.colorize(with: GameConstants.yellowColor, colorBlendFactor: 1, duration: 0))
-
-          counter = 1
+        counter = 1
 
       default:
           break
@@ -840,29 +734,13 @@ extension MyScene {
           }
       }
   }
-//  func powerIncrementScore() {
-//
-//      let powerLevels = [
-//          10, 46, 65, 75, 98, 124, 147, 161, 178, 191, 211, 231
-//      ]
-//
-//      if powerLevels.contains(scoreNumber) {
-//
-//          counter = 1
-//          startPowerBall = true
-//          powerBallActive = true
-//          stopGame = true
-//          powerBallCompletion = false
-//      }
-//  }
+
   func powerIncrementScore() {
 
       if scoreNumber % 25 == 0 &&
          scoreNumber != 0 &&
          scoreNumber != lastPowerScore {
-
           lastPowerScore = scoreNumber
-
           counter = 1
           startPowerBall = true
           powerBallActive = true
@@ -875,31 +753,23 @@ extension MyScene {
 
 
   func initialisePowerBallDesign() {
-      let startY = size.height + 50
-      ballNode1.position = CGPoint(x: 160, y: 600)
-      ballNode1.size = CGSize(width: 25, height: 25)
+      let startY = size.height + 80
+      ballNode1.size = CGSize(width: 40, height: 40)
       addChild(ballNode1)
-      ballNode2.position = CGPoint(x: 160, y: 600)
-      ballNode2.size = CGSize(width: 25, height: 25)
+      ballNode2.size = CGSize(width: 40, height: 40)
       addChild(ballNode2)
-      ballNode3.position = CGPoint(x: 160, y: 600)
-      ballNode3.size = CGSize(width: 25, height: 25)
+      ballNode3.size = CGSize(width: 40, height: 40)
       addChild(ballNode3)
-      ballNode4.position = CGPoint(x: 160, y: 600)
-      ballNode4.size = CGSize(width: 25, height: 25)
+      ballNode4.size = CGSize(width: 40, height: 40)
       addChild(ballNode4)
-      ballNode5.position = CGPoint(x: 160, y: 600)
-      ballNode5.size = CGSize(width: 25, height: 25)
+      ballNode5.size = CGSize(width: 40, height: 40)
       addChild(ballNode5)
       ballNode1.position = CGPoint(x: centerX, y: startY)
       ballNode2.position = CGPoint(x: centerX, y: startY)
       ballNode3.position = CGPoint(x: centerX, y: startY)
       ballNode4.position = CGPoint(x: centerX, y: startY)
       ballNode5.position = CGPoint(x: centerX, y: startY)
-      ballNode1.run(SKAction.colorize(with: GameConstants.greenColor, colorBlendFactor: 1, duration: 0))
-      ballNode2.run(SKAction.colorize(with: GameConstants.blueColor, colorBlendFactor: 1, duration: 0))
-      ballNode3.run(SKAction.colorize(with: GameConstants.yellowColor, colorBlendFactor: 1, duration: 0))
-      ballNode4.run(SKAction.colorize(with: GameConstants.redColor, colorBlendFactor: 1, duration: 0))
+
   }
   func movePowerBall(_ powerBall: SKSpriteNode) {
 
@@ -1096,9 +966,9 @@ extension MyScene {
       // Make texture bigger than screen
       let bgSize = CGSize(width: size.width * 1.2,
                           height: size.height * 1.5)
-
-      let texture = createGradientTexture(size: bgSize)
-
+    let themeString = UserDefaults.standard.string(forKey: "selectedTheme") ?? "Neon"
+    let theme = GameTheme(rawValue: themeString) ?? .sunrise
+    let texture = createGradientTexture(size: bgSize, theme: theme)
       gradientBackground = SKSpriteNode(texture: texture)
       gradientBackground?.position = CGPoint(x: centerX, y: centerY)
       gradientBackground?.size = bgSize
@@ -1110,15 +980,59 @@ extension MyScene {
 
       animateGradient()
   }
-  func createGradientTexture(size: CGSize) -> SKTexture {
+ 
+  func createGradientTexture(size: CGSize, theme: GameTheme) -> SKTexture {
 
       let layer = CAGradientLayer()
       layer.frame = CGRect(origin: .zero, size: size)
 
-      layer.colors = [
-          UIColor(red: 0.2, green: 0.0, blue: 0.4, alpha: 1).cgColor,
-          UIColor(red: 0.0, green: 0.6, blue: 1.0, alpha: 1).cgColor
-      ]
+      switch theme {
+
+      case .moonNight:
+        layer.colors = [
+                UIColor.black.cgColor,
+                UIColor(red: 0.02, green: 0.02, blue: 0.08, alpha: 1).cgColor,
+                UIColor(red: 0.05, green: 0.05, blue: 0.15, alpha: 1).cgColor,
+                UIColor(red: 0.1, green: 0.1, blue: 0.25, alpha: 1).cgColor
+            ]
+
+         case .sunrise:
+        layer.colors = [
+               UIColor.white.cgColor,
+               UIColor(red: 1.0, green: 0.93, blue: 0.85, alpha: 1).cgColor,
+               UIColor(red: 0.85, green: 0.92, blue: 1.0, alpha: 1).cgColor
+           ]
+
+      case .neon:
+          layer.colors = [
+              UIColor(red: 0.2, green: 0.0, blue: 0.4, alpha: 1).cgColor,
+              UIColor(red: 0.0, green: 0.6, blue: 1.0, alpha: 1).cgColor
+          ]
+
+      case .sunset:
+          layer.colors = [
+              UIColor(red: 1.0, green: 0.4, blue: 0.2, alpha: 1).cgColor,
+              UIColor(red: 1.0, green: 0.8, blue: 0.3, alpha: 1).cgColor
+          ]
+
+      case .ocean:
+          layer.colors = [
+              UIColor(red: 0.0, green: 0.3, blue: 0.6, alpha: 1).cgColor,
+              UIColor(red: 0.0, green: 0.8, blue: 0.9, alpha: 1).cgColor
+          ]
+
+      case .galaxy:
+          layer.colors = [
+              UIColor(red: 0.1, green: 0.0, blue: 0.2, alpha: 1).cgColor,
+              UIColor(red: 0.6, green: 0.0, blue: 0.8, alpha: 1).cgColor
+          ]
+
+      case .forest:
+          layer.colors = [
+              UIColor(red: 0.0, green: 0.3, blue: 0.1, alpha: 1).cgColor,
+              UIColor(red: 0.3, green: 0.7, blue: 0.3, alpha: 1).cgColor
+          ]
+      }
 
       layer.startPoint = CGPoint(x: 0, y: 1)
       layer.endPoint = CGPoint(x: 1, y: 0)
@@ -1158,8 +1072,248 @@ extension MyScene {
       flash.run(SKAction.sequence([fadeIn, fadeOut, .removeFromParent()]))
   }
 }
+
+extension MyScene {
+
+  func createHeartUI() {
+
+      let spacing: CGFloat = 30
+      let startX = size.width * 0.72   // right side position
+
+      for i in 0..<maxLifeLine {
+
+          let heart = SKSpriteNode(imageNamed: "heart")
+          heart.size = CGSize(width: 25, height: 25)
+
+          heart.position = CGPoint(
+              x: startX + CGFloat(i) * spacing,
+              y: size.height * 0.89
+          )
+
+          heart.zPosition = 500
+
+          addChild(heart)
+          heartNodes.append(heart)
+      }
+  }
+
+  func useLifeLine() {
+
+      lifeLineCount -= 1
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+      if self.lifeLineCount >= 0 && self.lifeLineCount < self.heartNodes.count {
+
+        let heart = self.heartNodes[self.lifeLineCount]
+
+          let fade = SKAction.fadeOut(withDuration: 0.3)
+          let scale = SKAction.scale(to: 0.1, duration: 0.3)
+
+          heart.run(SKAction.group([fade, scale]))
+      }
+
+        self.isGamePaused = false
+      }
+      stopGame = false
+      touchEnabled = true
+  }
+
+  func resetHearts() {
+
+      lifeLineCount = maxLifeLine
+
+      for heart in heartNodes {
+
+          heart.alpha = 1
+          heart.setScale(1)
+      }
+  }
+  private func checkAndSaveRecord() {
+
+      let previousRecord = UserDefaults.standard.integer(forKey: "HighestScore")
+
+      if scoreNumber > previousRecord {
+          UserDefaults.standard.set(scoreNumber, forKey: "HighestScore")
+          isNewRecord = true
+      } else {
+          isNewRecord = false
+      }
+  }
+
+  private func showEndScreen() {
+
+      // Stop movement immediately
+    checkAndSaveRecord()
+    GameCenterManager.shared.submitScore(score:scoreNumber,id:"com.reena.spinmatch.highscore")
+      // Black overlay
+      let overlay = SKSpriteNode(color: .black, size: size)
+      overlay.alpha = 0
+      overlay.position = CGPoint(x: size.width/2,
+                                 y: size.height/2)
+      overlay.zPosition = 2000
+      addChild(overlay)
+
+      overlay.run(SKAction.fadeIn(withDuration: 0.5))
+      endOverlay = overlay
+
+      // Show result after fade
+      run(SKAction.wait(forDuration: 0.5)) {
+
+          self.showResultsPanel()
+      }
+  }
+  private func showResultsPanel() {
+
+      guard let overlay = endOverlay else { return }
+      overlay.removeAllChildren()
+      let record = UserDefaults.standard.integer(forKey: "HighestScore")
+
+      // MARK: - Background Dim
+      overlay.color = UIColor.black.withAlphaComponent(0.6)
+      overlay.zPosition = 500
+      endOverlay?.isUserInteractionEnabled = false
+
+      // MARK: - Result Card (Rounded)
+      let card = SKShapeNode(rectOf: CGSize(width: size.width * 0.85,
+                                            height: 490),
+                             cornerRadius: 25)
+
+      card.fillColor = UIColor(red: 20/255,
+                               green: 25/255,
+                               blue: 45/255,
+                               alpha: 0.98) // Same HUD color
+
+      card.strokeColor = UIColor.white.withAlphaComponent(0.15)
+      card.lineWidth = 2
+      card.position = CGPoint(x: 0, y: 0)
+      card.glowWidth = 6
+      overlay.addChild(card)
+
+
+      // MARK: - FINISH TITLE
+      let finishLabel = SKLabelNode(fontNamed: "YoureGone-Regular")
+      finishLabel.text = "Game Over"
+      finishLabel.fontSize = 48
+      finishLabel.fontColor = .white
+      finishLabel.position = CGPoint(x: 0, y: 160)
+      card.addChild(finishLabel)
+
+
+      // MARK: - RECORD
+      if isNewRecord {
+          let newRecordLabel = SKLabelNode(fontNamed: "YoureGone-Regular")
+          newRecordLabel.text = "🎉 NEW RECORD!"
+          newRecordLabel.fontSize = 28
+          newRecordLabel.fontColor = .systemYellow
+          newRecordLabel.position = CGPoint(x: 0, y: 110)
+          card.addChild(newRecordLabel)
+         // createConfetti()
+      } else {
+          let recordLabel = SKLabelNode(fontNamed: "YoureGone-Regular")
+          recordLabel.text = "Best Score: \(record)"
+          recordLabel.fontSize = 28
+          recordLabel.fontColor = .cyan
+          recordLabel.position = CGPoint(x: 0, y: 110)
+          card.addChild(recordLabel)
+      }
+
+
+
+
+      // MARK: - DISTANCE RESULT
+      let distanceLabel = SKLabelNode(fontNamed: "YoureGone-Regular")
+      distanceLabel.text = "High Score: \(scoreNumber)"
+      distanceLabel.fontSize = 30
+      distanceLabel.fontColor = .green
+      distanceLabel.position = CGPoint(x: 0, y: 50)
+      card.addChild(distanceLabel)
+
+
+      // MARK: - RESTART BUTTON
+      let restartButton = SKShapeNode(rectOf: CGSize(width: 240, height: 55),
+                                      cornerRadius: 15)
+      restartButton.fillColor = UIColor(named: "blueColor") ?? .systemBlue
+      restartButton.strokeColor = .clear
+      restartButton.position = CGPoint(x: 0, y: -30)
+      restartButton.name = "restartButton"
+      card.addChild(restartButton)
+
+      let restartLabel = SKLabelNode(fontNamed: "YoureGone-Regular")
+      restartLabel.text = "RESTART"
+      restartLabel.fontSize = 22
+      restartLabel.verticalAlignmentMode = .center
+      restartLabel.name = "restartButton"
+      restartButton.addChild(restartLabel)
+
+
+      // MARK: - LEADERBOARD BUTTON
+      let leaderboardButton = SKShapeNode(rectOf: CGSize(width: 240, height: 55),
+                                          cornerRadius: 15)
+      leaderboardButton.fillColor = UIColor(named: "yellowColor") ??  UIColor.systemYellow
+      leaderboardButton.strokeColor = .clear
+      leaderboardButton.position = CGPoint(x: 0, y: -100)
+      leaderboardButton.name = "leaderboardButton"
+      card.addChild(leaderboardButton)
+
+      let leaderboardLabel = SKLabelNode(fontNamed: "YoureGone-Regular")
+      leaderboardLabel.text = "LEADERBOARD"
+      leaderboardLabel.fontSize = 20
+      leaderboardLabel.verticalAlignmentMode = .center
+      leaderboardLabel.name = "leaderboardButton"
+      leaderboardButton.addChild(leaderboardLabel)
+
+    let mainMenuButton = SKShapeNode(rectOf: CGSize(width: 240, height: 55),
+                                        cornerRadius: 15)
+    mainMenuButton.fillColor =  UIColor(named: "greenColor") ??  UIColor.green
+    mainMenuButton.strokeColor = .clear
+    mainMenuButton.position = CGPoint(x: 0, y: -170)
+    mainMenuButton.name = "mainMenuButton"
+    card.addChild(mainMenuButton)
+
+    let mainMenuButtonLabel = SKLabelNode(fontNamed: "YoureGone-Regular")
+    mainMenuButtonLabel.text = "Main Menu"
+    mainMenuButtonLabel.fontSize = 20
+    mainMenuButtonLabel.verticalAlignmentMode = .center
+    mainMenuButtonLabel.name = "mainMenuButton"
+    mainMenuButton.addChild(mainMenuButtonLabel)
+
+
+      // MARK: - Button Pulse Animation
+      let pulseUp = SKAction.scale(to: 1.05, duration: 0.6)
+      let pulseDown = SKAction.scale(to: 1.0, duration: 0.6)
+      let pulse = SKAction.sequence([pulseUp, pulseDown])
+      restartButton.run(SKAction.repeatForever(pulse))
+
+
+      // MARK: - Card Entrance Animation
+      card.setScale(0.8)
+      card.alpha = 0
+
+      let scaleIn = SKAction.scale(to: 1.0, duration: 0.3)
+      let fadeIn = SKAction.fadeIn(withDuration: 0.3)
+
+      card.run(SKAction.group([scaleIn, fadeIn]))
+  }
+
+  private func restartGame() {
+      let newScene = MyScene(size: self.size)
+      newScene.scaleMode = .resizeFill
+      self.view?.presentScene(newScene,
+                              transition: SKTransition.fade(withDuration: 0.5))
+  }
+  private func quitToMenu() {
+      bgMusicPlayer?.stop()
+      NotificationCenter.default.post(name: .quitToMenu, object: nil)
+  }
+
+}
+
 struct PhysicsCategory {
     static let none: UInt32 = 0
     static let ball: UInt32 = 0x1 << 0
     static let circle: UInt32 = 0x1 << 1
+}
+
+extension Notification.Name {
+    static let startGame = Notification.Name("startGame")
+    static let quitToMenu = Notification.Name("quitToMenu")
 }
