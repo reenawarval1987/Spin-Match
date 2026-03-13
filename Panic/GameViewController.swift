@@ -22,6 +22,14 @@ class GameViewController: UIViewController {
           name: .quitToMenu,
           object: nil
       )
+      NotificationCenter.default.addObserver(
+          self,
+          selector: #selector(showLeaderboard),
+          name: .leaderboard,
+          object: nil
+      )
+
+
     }
 
   @objc  func showMenu() {
@@ -67,7 +75,7 @@ class GameViewController: UIViewController {
       }
   }
   // MARK: - Leaderboard
-  func showLeaderboard() {
+ @objc func showLeaderboard() {
       let gcVC = GKGameCenterViewController()
       gcVC.gameCenterDelegate = self
       present(gcVC, animated: true)

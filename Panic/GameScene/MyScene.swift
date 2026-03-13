@@ -83,6 +83,9 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
   var lifeLineCount = 3
   private var isGamePaused = true
 
+  @AppStorage("soundEnabled") private var soundEnabled = true
+  @AppStorage("vibrationEnabled") private var vibrationEnabled = true
+
   let ballTextures = [
       SKTexture(imageNamed: "red-ball"),
       SKTexture(imageNamed: "green-ball"),
@@ -113,7 +116,7 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
       useLifeLineActive = false
       counter = 1
       timer = 0
-      matchcolor = 4
+      matchcolor = 1
       stopGame = false
       ballSpeed = 8
       isHiddenPlayAgianBtn = true
@@ -193,7 +196,7 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
 
 
   private func setupBackgroundMusic() {
-    let soundEnabled = UserDefaults.standard.bool(forKey: "soundEnabled")
+   // let soundEnabled = UserDefaults.standard.bool(forKey: "soundEnabled")
 
 
       guard let url = Bundle.main.url(forResource: "backgroundMusic", withExtension: "wav") else {
@@ -220,7 +223,7 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
 
     setupBackgroundMusic()
       emitterEffect()
-      themeSelection()
+     // themeSelection()
       setupGradientBackground()
     //  initialiseBackground()
    //   initialiseDBAccess()
@@ -355,8 +358,8 @@ class MyScene: SKScene,SKPhysicsContactDelegate {
         self.run(SKAction.playSoundFileNamed("getballsound.wav", waitForCompletion: false))
 
     } else {
-      let virbrationEnabled = UserDefaults.standard.bool(forKey: "vibrationEnabled") 
-      if virbrationEnabled {
+   //   let virbrationEnabled = UserDefaults.standard.bool(forKey: "vibrationEnabled")
+      if vibrationEnabled {
           self.errorHaptic()
       }
 
@@ -470,7 +473,7 @@ extension MyScene {
           node.parent?.name == "leaderboardButton" {
 
         // buttonTapAnimation(node)
-       // showLeaderShipBoard()
+        showLeaderShipBoard()
         return
       }
       if node.name == "mainMenuButton" ||
@@ -516,6 +519,7 @@ extension MyScene {
       let pulseDown = SKAction.scale(to: 1.0, duration: 0.8)
       let pulse = SKAction.sequence([pulseUp, pulseDown])
       startLabel.run(SKAction.repeatForever(pulse))
+      gameStarted = false
   }
 
   func ballSpeedIncreaseUpdator() {
@@ -524,6 +528,7 @@ extension MyScene {
   }
   func playAgainGame() {
     endOverlay?.removeFromParent()
+
     // isGamePaused = false
       isPlayAgainActive = false
       resetHearts()
@@ -592,17 +597,17 @@ extension MyScene {
       highScoreLbl?.run(SKAction.fadeIn(withDuration: 1.0))
       nextLifeLine?.run(SKAction.fadeIn(withDuration: 1.3))
   }
-  func themeSelection() {
-
-      let hour = Calendar.current.component(.hour, from: Date())
-      if hour >= 18 || hour <= 6 {
-          backgroundColor = .black
-          backgroundColorWhite = false
-      } else {
-          backgroundColor = .white
-          backgroundColorWhite = true
-      }
-  }
+//  func themeSelection() {
+//
+//      let hour = Calendar.current.component(.hour, from: Date())
+//      if hour >= 18 || hour <= 6 {
+//          backgroundColor = .black
+//          backgroundColorWhite = false
+//      } else {
+//          backgroundColor = .white
+//          backgroundColorWhite = true
+//      }
+//  }
 }
 extension MyScene {
   override func update(_ currentTime: TimeInterval) {
@@ -792,7 +797,7 @@ extension MyScene {
           self.scoreNumber += 1
           self.scoreNumberLabel?.text = "\(self.scoreNumber)"
 
-        powerBall.run(SKAction.moveTo(y: self.size.height - 80, duration: 0))
+          powerBall.run(SKAction.moveTo(y: self.size.height + 80, duration: 0))
 
           self.circleNode1.run(SKAction.scaleX(by: 1.3, y: 1.3, duration: 0.3))
           self.circleNode1.run(SKAction.scaleX(by: 0.8, y: 0.8, duration: 0.5))
@@ -980,8 +985,8 @@ extension MyScene {
       // Make texture bigger than screen
       let bgSize = CGSize(width: size.width * 1.2,
                           height: size.height * 1.5)
-    let themeString = UserDefaults.standard.string(forKey: "selectedTheme") ?? "Neon"
-    let theme = GameTheme(rawValue: themeString) ?? .sunrise
+    let themeString = UserDefaults.standard.string(forKey: "selectedTheme") ?? "neon"
+    let theme = GameTheme(rawValue: themeString) ?? .neon
     let texture = createGradientTexture(size: bgSize, theme: theme)
       gradientBackground = SKSpriteNode(texture: texture)
       gradientBackground?.position = CGPoint(x: centerX, y: centerY)
@@ -1318,6 +1323,10 @@ extension MyScene {
       bgMusicPlayer?.stop()
       NotificationCenter.default.post(name: .quitToMenu, object: nil)
   }
+  private func showLeaderShipBoard() {
+      //bgMusicPlayer?.stop()
+    NotificationCenter.default.post(name: .leaderboard, object: nil)
+  }
 
 }
 
@@ -1330,4 +1339,5 @@ struct PhysicsCategory {
 extension Notification.Name {
     static let startGame = Notification.Name("startGame")
     static let quitToMenu = Notification.Name("quitToMenu")
+    static let leaderboard = Notification.Name("leaderboard")
 }
