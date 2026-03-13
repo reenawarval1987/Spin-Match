@@ -1,9 +1,6 @@
 {
   "fill" : {
-    "linear-gradient" : [
-      "extended-gray:1.00000,1.00000",
-      "extended-gray:1.00000,1.00000"
-    ],
+    "automatic-gradient" : "display-p3:0.08021,0.10240,0.08663,1.00000",
     "orientation" : {
       "start" : {
         "x" : 0.5,
@@ -19,6 +16,7 @@
     {
       "layers" : [
         {
+          "blend-mode" : "normal",
           "image-name" : "logo-game.png",
           "name" : "logo-game",
           "position-specializations" : [

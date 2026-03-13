@@ -271,7 +271,7 @@
 				DEVELOPMENT_TEAM = Z8VKNK54H5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Panic/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "REFLEX CIRCLE";
+				INFOPLIST_KEY_CFBundleDisplayName = "Reflex Circle";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -313,7 +313,7 @@
 				DEVELOPMENT_TEAM = Z8VKNK54H5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Panic/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "REFLEX CIRCLE";
+				INFOPLIST_KEY_CFBundleDisplayName = "Reflex Circle";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;

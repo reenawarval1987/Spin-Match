@@ -4,7 +4,6 @@
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24504"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
-        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -17,14 +16,14 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="ReflexCircle" translatesAutoresizingMaskIntoConstraints="NO" id="aEl-Jv-eK9">
-                                <rect key="frame" x="71.666666666666686" y="18.666666666666686" width="250.00000000000006" height="815"/>
+                                <rect key="frame" x="71.666666666666686" y="18.666666666666686" width="250" height="815"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="250" id="wwj-KX-0H1"/>
                                 </constraints>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <color key="backgroundColor" red="0.35923426537266284" green="0.67691896535565821" blue="0.96611279249191284" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
                             <constraint firstItem="aEl-Jv-eK9" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="LMO-YF-PV9"/>
                             <constraint firstItem="aEl-Jv-eK9" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="ltT-3d-mqy"/>
@@ -38,8 +37,5 @@
     </scenes>
     <resources>
         <image name="ReflexCircle" width="855" height="815"/>
-        <systemColor name="systemBackgroundColor">
-            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
     </resources>
 </document>
