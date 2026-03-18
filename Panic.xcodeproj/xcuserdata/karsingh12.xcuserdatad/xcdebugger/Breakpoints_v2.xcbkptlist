@@ -14,8 +14,8 @@
             filePath = "Panic/GameScene/MyScene.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "442"
-            endingLineNumber = "442"
+            startingLineNumber = "434"
+            endingLineNumber = "434"
             landmarkName = "touchesBegan(_:with:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -30,8 +30,8 @@
             filePath = "Panic/GameScene/MyScene.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "465"
-            endingLineNumber = "465"
+            startingLineNumber = "457"
+            endingLineNumber = "457"
             landmarkName = "touchesBegan(_:with:)"
             landmarkType = "7">
          </BreakpointContent>
@@ -46,8 +46,8 @@
             filePath = "Panic/GameScene/MyScene.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1317"
-            endingLineNumber = "1317"
+            startingLineNumber = "1309"
+            endingLineNumber = "1309"
             landmarkName = "restartGame()"
             landmarkType = "7">
          </BreakpointContent>
@@ -62,8 +62,8 @@
             filePath = "Panic/GameScene/MyScene.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "446"
-            endingLineNumber = "446"
+            startingLineNumber = "438"
+            endingLineNumber = "438"
             landmarkName = "touchesBegan(_:with:)"
             landmarkType = "7">
          </BreakpointContent>

@@ -32,7 +32,6 @@ class GameCenterManager {
         }
     }
   func submitScore(score: Int, id: String) {
-      // Use modern API (iOS 14+) to submit scores
       GKLeaderboard.submitScore(Int(score),
                                 context: 0,
                                 player: GKLocalPlayer.local,
