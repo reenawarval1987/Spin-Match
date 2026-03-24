@@ -154,7 +154,7 @@ class MainGameScene: SKScene,SKPhysicsContactDelegate {
       do {
           bgMusicPlayer = try AVAudioPlayer(contentsOf: url)
           bgMusicPlayer?.numberOfLoops = -1   // infinite loop
-          bgMusicPlayer?.volume = 0.6
+          bgMusicPlayer?.volume = 0.5
           bgMusicPlayer?.prepareToPlay()
         if soundEnabled {
             bgMusicPlayer?.play()
@@ -168,8 +168,8 @@ class MainGameScene: SKScene,SKPhysicsContactDelegate {
 
 
   func configureGameScene() {
-
-    setupBackgroundMusic()
+      highScore = UserDefaults.standard.integer(forKey: "HighestScore")
+      setupBackgroundMusic()
       emitterEffect()
       setupGradientBackground()
       setFramesForSprite()
@@ -623,6 +623,7 @@ extension MainGameScene {
       default:
           break
       }
+    self.run(SKAction.playSoundFileNamed("circle-tapping.mp3", waitForCompletion: false))
   }
 
   func initialisePowerBall() {
@@ -679,17 +680,13 @@ extension MainGameScene {
   func movePowerBall(_ powerBall: SKSpriteNode) {
 
       powerBall.run(SKAction.moveTo(y: size.height * 0.25, duration: 0.8)) {
-
           self.scoreNumber += 1
           self.scoreNumberLabel?.text = "\(self.scoreNumber)"
-
           powerBall.run(SKAction.moveTo(y: self.size.height + 80, duration: 0))
-
           self.circleNode1.run(SKAction.scaleX(by: 1.3, y: 1.3, duration: 0.3))
           self.circleNode1.run(SKAction.scaleX(by: 0.8, y: 0.8, duration: 0.5))
           self.circleNode1.size = CGSize(width: 260, height: 260)
-
-          self.run(SKAction.playSoundFileNamed("getballsound.wav", waitForCompletion: false))
+          self.run(SKAction.playSoundFileNamed("confirmTap.mp3", waitForCompletion: false))
       }
 
       powerBallCountStop += 1
